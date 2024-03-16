@@ -1,0 +1,89 @@
+mql5
+//+------------------------------------------------------------------+
+//|                                                     Africa Breakout|
+//|                            https://www.forexroboteasy.com        |
+//|                                                   Forex Robot Easy Team|
+//+------------------------------------------------------------------+
+#property copyright 'Forex Robot Easy Team'
+#property link      'https://www.forexroboteasy.com'
+
+//--- input parameters
+input int    StopLoss        = 100;      // Stop Loss value in points
+input int    TakeProfit      = 200;      // Take Profit value in points
+input double LotSize         = 0.1;      // Lot Size value
+input int    Slippage        = 3;        // Maximum allowed slippage
+
+//--- indicator handles
+int           iCamarilla;                // Camarilla indicator handle
+
+//--- expert advisor initialization function
+int OnInit()
+{
+   //--- create the Camarilla indicator
+   iCamarilla = iCustom(_Symbol, _Period, 'Camarilla');
+
+   //--- check the indicator creation
+   if(iCamarilla == INVALID_HANDLE)
+   {
+      Print('Failed to create the Camarilla indicator!');
+      return INIT_FAILED;
+   }
+
+   //--- initialization completed successfully
+   return INIT_SUCCEEDED;
+}
+
+//--- expert advisor deinitialization function
+void OnDeinit(const int reason)
+{
+   //--- delete the Camarilla indicator
+   ObjectsDeleteAll(0, OBJ_INDICATOR);
+}
+
+//--- expert advisor start function
+void OnTick()
+{
+   //--- declare variables
+   double  high, low, open, close;
+   double  R3, S3;
+
+   //--- get the daily high, low, open and close prices
+   high   = iHigh(_Symbol, PERIOD_D1, 0);
+   low    = iLow(_Symbol, PERIOD_D1, 0);
+   open   = iOpen(_Symbol, PERIOD_D1, 0);
+   close  = iClose(_Symbol, PERIOD_D1, 0);
+
+   //--- get the R3 and S3 pivot points
+   R3 = iCustom(_Symbol, PERIOD_D1, 'Camarilla', 3, 0);
+   S3 = iCustom(_Symbol, PERIOD_D1, 'Camarilla', 4, 0);
+
+   //--- check for a bullish breakout
+   if(close > R3 && open < R3)
+   {
+      //--- open a buy trade
+      int ticket = OrderSend(_Symbol, OP_BUY, LotSize, Ask, Slippage, Bid - StopLoss * _Point, Bid + TakeProfit * _Point, 'Bullish Breakout', 0, 0, Green);
+      if(ticket < 0)
+      {
+         Print('Failed to open a buy trade! Error code: ', GetLastError());
+         return;
+      }
+      
+      Print('Buy trade opened successfully!');
+   }
+
+   //--- check for a bearish breakout
+   if(close < S3 && open > S3)
+   {
+      //--- open a sell trade
+      int ticket = OrderSend(_Symbol, OP_SELL, LotSize, Bid, Slippage, Ask + StopLoss * _Point, Ask - TakeProfit * _Point, 'Bearish Breakout', 0, 0, Red);
+      if(ticket < 0)
+      {
+         Print('Failed to open a sell trade! Error code: ', GetLastError());
+         return;
+      }
+      
+      Print('Sell trade opened successfully!');
+   }
+}
+
+//--- end of code
